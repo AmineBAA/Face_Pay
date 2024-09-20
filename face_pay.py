@@ -11,6 +11,7 @@ import streamlit as st
 import cv2
 import face_recognition
 import numpy as np
+import cmake
 
 # Step 1: Load the known face and encoding
 # Replace 'your_image.jpg' with the path to an image of the user you want to recognize
