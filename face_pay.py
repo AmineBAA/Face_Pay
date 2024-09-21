@@ -17,7 +17,7 @@ def detect_face(image):
 
 # Load reference image
 def load_reference_image():
-    ref_img = cv2.imread("path_to_existing_image.jpg")
+    ref_img = cv2.imread("My photo.jpg")
     ref_face = detect_face(ref_img)
     if ref_face is not None:
         return ref_face
