@@ -2,33 +2,35 @@ import cv2
 import numpy as np
 import streamlit as st
 from PIL import Image
+import face_recognition
 
-# Function to detect and crop face from an image
-def detect_face(image):
-    face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+# Function to extract face embeddings using face_recognition
+def extract_face_embedding(image):
+    # Convert the color image (BGR) to RGB
+    rgb_image = image[:, :, ::-1]
     
-    # Convert the color image to grayscale (for face detection)
-    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    faces = face_cascade.detectMultiScale(gray_image, scaleFactor=1.1, minNeighbors=5)
+    # Find face locations
+    face_locations = face_recognition.face_locations(rgb_image)
     
-    if len(faces) > 0:
-        (x, y, w, h) = faces[0]  # Assuming we take the first detected face
-        face_crop = gray_image[y:y + h, x:x + w]
-        return face_crop
+    # Get face embeddings for the faces in the image
+    if face_locations:
+        face_encodings = face_recognition.face_encodings(rgb_image, face_locations)
+        return face_encodings[0]  # Assuming we take the first face found
     else:
         return None
 
-# Load reference image
+# Load reference image and get its face embedding
 def load_reference_image(uploaded_image):
     if uploaded_image is not None:
         # Convert the uploaded image (PIL) to an OpenCV format
         pil_image = Image.open(uploaded_image)
         open_cv_image = np.array(pil_image)
-        open_cv_image = open_cv_image[:, :, ::-1]  # Convert RGB to BGR for OpenCV
         
-        ref_face = detect_face(open_cv_image)
-        if ref_face is not None:
-            return ref_face
+        # Get face embedding from the reference image
+        ref_face_embedding = extract_face_embedding(open_cv_image)
+        
+        if ref_face_embedding is not None:
+            return ref_face_embedding
         else:
             st.error("No face detected in the reference image.")
             return None
@@ -36,23 +38,21 @@ def load_reference_image(uploaded_image):
         st.error("Please upload a reference image.")
         return None
 
-# Compare two faces
-def compare_faces(face1, face2):
-    face1_resized = cv2.resize(face1, (face2.shape[1], face2.shape[0]))
-    difference = cv2.absdiff(face1_resized, face2)
-    result = np.sum(difference)  # Sum of absolute differences
-    return result
+# Compare face embeddings using Euclidean distance
+def compare_faces(embedding1, embedding2, threshold=0.6):
+    distance = np.linalg.norm(embedding1 - embedding2)  # Euclidean distance
+    return distance < threshold  # Return True if distance is less than the threshold
 
 # Streamlit interface
 def main():
-    st.title("Face Recognition System with Code Matching")
+    st.title("Enhanced Face Recognition with Code Matching")
 
     # Upload a reference image
     uploaded_reference_image = st.file_uploader("Upload a reference image", type=["jpg", "png", "jpeg"])
-    reference_image = load_reference_image(uploaded_reference_image)
+    reference_embedding = load_reference_image(uploaded_reference_image)
     
-    if reference_image is None:
-        st.stop()  # Stop if no reference face is detected
+    if reference_embedding is None:
+        st.stop()  # Stop if no reference face embedding is detected
 
     # User input for code matching
     user_code = st.text_input("Enter your code (e.g., '1234'):")
@@ -65,22 +65,17 @@ def main():
         # Convert the captured camera image to OpenCV format
         img = Image.open(camera_image)
         frame = np.array(img)
-        frame = frame[:, :, ::-1]  # Convert RGB to BGR for OpenCV
-
-        # Detect face in the captured frame
-        face_in_frame = detect_face(frame)
         
-        if face_in_frame is not None:
-            # Compare with the reference face
-            comparison_result = compare_faces(reference_image, face_in_frame)
+        # Get face embedding from the captured frame
+        current_face_embedding = extract_face_embedding(frame)
+        
+        if current_face_embedding is not None:
+            # Compare with the reference face embedding
+            face_match = compare_faces(reference_embedding, current_face_embedding)
 
-            # Define a matching threshold
-            threshold = 100000  # Adjust this threshold as necessary
-
-            if comparison_result < threshold:
-                # If faces match
+            if face_match:
                 if user_code == correct_code:
-                    st.success(f"Face Matched! Welcome user with code {user_code}")
+                    st.success(f"Face and code matched! Welcome, user with code {user_code}.")
                 else:
                     st.warning("Face matched, but code does not match.")
             else:
