@@ -1,9 +1,5 @@
 streamlit 
-opencv-python 
-face_recognition
-build
-dlib
+opencv-python-headless
 numpy
-boost
-cmake
+
 
