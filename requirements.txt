@@ -5,4 +5,5 @@ build
 dlib
 numpy
 boost
+cmake
 
