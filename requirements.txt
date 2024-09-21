@@ -5,3 +5,4 @@ build
 dlib
 numpy
 boost
+cv2
