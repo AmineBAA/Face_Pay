@@ -6,8 +6,11 @@ from PIL import Image
 # Function to detect and crop face from an image
 def detect_face(image):
     face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+    
+    # Convert the color image to grayscale (for face detection)
     gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     faces = face_cascade.detectMultiScale(gray_image, scaleFactor=1.1, minNeighbors=5)
+    
     if len(faces) > 0:
         (x, y, w, h) = faces[0]  # Assuming we take the first detected face
         face_crop = gray_image[y:y + h, x:x + w]
@@ -16,13 +19,21 @@ def detect_face(image):
         return None
 
 # Load reference image
-def load_reference_image():
-    ref_img = cv2.imread("My Photo.jpg")
-    ref_face = detect_face(ref_img)
-    if ref_face is not None:
-        return ref_face
+def load_reference_image(uploaded_image):
+    if uploaded_image is not None:
+        # Convert the uploaded image (PIL) to an OpenCV format
+        pil_image = Image.open(uploaded_image)
+        open_cv_image = np.array(pil_image)
+        open_cv_image = open_cv_image[:, :, ::-1]  # Convert RGB to BGR for OpenCV
+        
+        ref_face = detect_face(open_cv_image)
+        if ref_face is not None:
+            return ref_face
+        else:
+            st.error("No face detected in the reference image.")
+            return None
     else:
-        st.error("No face detected in the reference image.")
+        st.error("Please upload a reference image.")
         return None
 
 # Compare two faces
@@ -37,7 +48,8 @@ def main():
     st.title("Face Recognition System with Code Matching")
 
     # Upload a reference image
-    reference_image = load_reference_image()
+    uploaded_reference_image = st.file_uploader("Upload a reference image", type=["jpg", "png", "jpeg"])
+    reference_image = load_reference_image(uploaded_reference_image)
     
     if reference_image is None:
         st.stop()  # Stop if no reference face is detected
@@ -85,7 +97,7 @@ def main():
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         stframe.image(frame_rgb, channels="RGB")
 
-        # End loop if user presses "q"
+        # End loop if user presses "Stop"
         if st.button("Stop"):
             break
 
