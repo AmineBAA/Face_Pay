@@ -4,3 +4,4 @@ face_recognition
 build
 dlib
 numpy
+boost
