@@ -58,21 +58,16 @@ def main():
     user_code = st.text_input("Enter your code (e.g., '1234'):")
     correct_code = "1234"  # Set the correct code
 
-    # Initialize webcam feed
-    video_capture = cv2.VideoCapture(0)
+    # Use Streamlit's camera input for capturing an image from webcam
+    camera_image = st.camera_input("Capture an image using webcam")
 
-    # Streamlit webcam display
-    stframe = st.empty()  # For displaying video frame
+    if camera_image is not None:
+        # Convert the captured camera image to OpenCV format
+        img = Image.open(camera_image)
+        frame = np.array(img)
+        frame = frame[:, :, ::-1]  # Convert RGB to BGR for OpenCV
 
-    while True:
-        # Capture frame-by-frame
-        ret, frame = video_capture.read()
-        
-        if not ret:
-            st.error("Failed to capture video.")
-            break
-
-        # Detect face in the current video frame
+        # Detect face in the captured frame
         face_in_frame = detect_face(frame)
         
         if face_in_frame is not None:
@@ -91,18 +86,7 @@ def main():
             else:
                 st.warning("Face does not match.")
         else:
-            st.warning("No face detected in the current frame.")
-
-        # Show the video frame on Streamlit
-        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        stframe.image(frame_rgb, channels="RGB")
-
-        # End loop if user presses "Stop"
-        if st.button("Stop"):
-            break
-
-    # Release the capture when done
-    video_capture.release()
+            st.warning("No face detected in the captured image.")
 
 if __name__ == "__main__":
     main()
